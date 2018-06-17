@@ -12,13 +12,17 @@ ACCESS_DENIED = 200
 """
 define exception class
 """
+
+
 class UnhandledQuery(Fault):
     def __init__(self, message="Couldn't handle the query"):
         super().__init__(UNHANDLED, message)
 
+
 class AccessDenied(Fault):
     def __init__(self, message="Access denied"):
         super().__init__(ACCESS_DENIED, message)
+
 
 def inside(dir, name):
     """
@@ -34,6 +38,7 @@ def get_port(url):
     name = urlparse(url)[1]
     parts = name.split(':')
     return int(parts[-1])
+
 
 class Node:
     def __init__(self, url, dirname, secret):
@@ -55,7 +60,7 @@ class Node:
         dir = self.dirname
         name = join(dir, query)
         if not isfile(name): raise UnhandledQuery
-        if not inside(dir, name): raise AcessDenied
+        if not inside(dir, name): raise AccessDenied
         return open(name).read()
 
     def _broadcast(self, query, history):
@@ -65,8 +70,9 @@ class Node:
                 s = ServerProxy(other)
                 return s.query(query, history)
             except Fault as f:
-                if f.faultCode == UNHANDLED: pass
-                else: 
+                if f.faultCode == UNHANDLED:
+                    pass
+                else:
                     self.known.remove(other)
             except:
                 self.known.remove(other)
@@ -77,22 +83,22 @@ class Node:
         return 0
 
     def fetch(self, query, secret):
-        if secret != self.secret: raise AccessDined 
+        if secret != self.secret: raise AccessDenied
         result = self.query(query)
         with open(join(self.dirname, query), 'w') as f:
             f.write(result)
         return 0
 
-
-    
     def _start(self):
         s = SimpleXMLRPCServer(("", get_port(self.url)), logRequests=False)
         s.register_instance(self)
         s.serve_forever()
 
+
 def main():
     url, directory, secret = sys.argv[1:]
     n = Node(url, directory, secret)
     n._start()
+
 
 if __name__ == '__main__': main()
